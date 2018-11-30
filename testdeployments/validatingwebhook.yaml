@@ -1,0 +1,22 @@
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: validation-webhook-cfg
+  labels:
+    app: admission-webhook
+webhooks:
+  - name: required-labels.vodacom.com
+    clientConfig:
+      service:
+        name: admission-webhook-svc
+        namespace: cluster-services
+        path: "/validate"
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURBekNDQWV1Z0F3SUJBZ0lKQUluVlRYSzdsRDJFTUEwR0NTcUdTSWIzRFFFQkN3VUFNQmd4RmpBVUJnTlYKQkFNTURURXdMakV6TWk0eU1UTXVNekl3SGhjTk1UY3dOakE0TVRNME1USXhXaGNOTkRReE1ESTBNVE0wTVRJeApXakFZTVJZd0ZBWURWUVFEREEweE1DNHhNekl1TWpFekxqTXlNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DCkFROEFNSUlCQ2dLQ0FRRUEzL1ByNFBrZkM0L2tGaWhrcEZtY2ZtbGNFaTN1b21iQ0tnbjNsTDVnNWc4c3hlYzMKbmZsZ3lFbmNPTXh2cjc0TmtEeU5wM2I4ZWhkYlNyVjJXRHJjSEd2VVorRXRiNHBseGwyU2cvV0dLZGlvYkZVbwp2Q0RieWxIVW9jd0Z0N0NWVGZnZ2FvQ2ZoNjhtYUtDbzI4OHMrRUJBZEJLZ1hPU2hIOE4zN2puVVRHR3lmK0dYClJpWGJmcnBqSHJ0akVDOVJydkRyZVNJVmVCRURzQlRIY3ZyZWZmUjdTRGVyMTIwS3RyeU5NbjVZMjdjcTRuTzUKeGZXd3FCVkFVQ3FLNG0rSnpDdmcrZ1hWZXFNNnNwcWtVQW9XQkFXRnFjbm5ZYUtRYXJaTG1ZbEVkclNDemhLeApPMUtnME5leGVyamNXMkJ4aFZDbHlmT2RtczROSzQwSjJPOHJSd0lEQVFBQm8xQXdUakFkQmdOVkhRNEVGZ1FVClMvL1RDazk0TFB1ME1BZWVIbUhWb0ZOZ1JkZ3dId1lEVlIwakJCZ3dGb0FVUy8vVENrOTRMUHUwTUFlZUhtSFYKb0ZOZ1JkZ3dEQVlEVlIwVEJBVXdBd0VCL3pBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQVFFQXVIR28vYkhWZ3l1QgpCMFRBWk1hTGtZUU8vRjA2T28xZTluUWlWSVJXSWEzTk1sZVhaTUJHZG9ocDFpRGpZcmczdUdGbFlKNFFxWUlLCk9Yd2xRVzBSdTlwbXN0SVg2NTZXQ3cvU3hwTTR6cUE0UnZqMmdoRHliQnpycVNXcDZnNmh3L2tHSTF1TWJuMk4Kb0JCdWw5dTZiU3cwZlMrdzhJYkoyZHVNTTZLeE9ibGV0NzJrcDNtdk5UYTZRYnlFUUloVE1RdHI5R1Y2bHRCWgpJeWI1ZXVPandRSzIxMExpUTRhWllYbC81RVJkNFdtZDJWWEdSeEw2eGUyWXBuZ0NkbnhmRlFWUG9PK3FSTlU4CitlWXd6b3hmWVlTekRtcVhvOHduL1g1NWgzMkIrTkpNbm5kMlRjVUIzTWRHTDBHZ0lnTWJLckczWjQ2cmd4YWoKUUN2MFZSL3RCQT09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    rules:
+      - operations: [ "CREATE" ]
+        apiGroups: ["apps", ""]
+        apiVersions: ["v1"]
+        resources: ["deployments","services"]
+    namespaceSelector:
+      matchLabels:
+        admission-webhook: enabled

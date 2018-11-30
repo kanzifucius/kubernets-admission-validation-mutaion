@@ -1,0 +1,63 @@
+{{- $ca := genCA "admission-controller-ca" 3650 }}
+  {{- $cn := printf "%s-%s" .Release.Name .Chart.Name }}
+  {{- $altName1 := printf "%s-%s.%s" .Release.Name .Chart.Name .Release.Namespace }}
+  {{- $altName2 := printf "%s-%s.%s.svc" .Release.Name .Chart.Name .Release.Namespace }}
+  {{- $cert := genSignedCert $cn nil (list $altName1 $altName2) 3650 $ca }}
+#apiVersion: admissionregistration.k8s.io/v1beta1
+#kind: MutatingWebhookConfiguration
+#metadata:
+#  name: {{ include "admissionwebhook.fullname" . }}-mutating-cfg
+#  labels:
+#    app: {{ include "admissionwebhook.name" . }}
+#webhooks:
+#  - name: mutating
+#    clientConfig:
+#      service:
+#        name: admission-webhook-svc
+#        namespace: {{ .Values.namespace }}
+#        path: "/mutate"
+#      caBundle: {{ b64enc $ca.Cert }}
+#    rules:
+#      - operations: [ "CREATE" ]
+#        apiGroups: ["apps", ""]
+#        apiVersions: ["v1"]
+#        resources: ["deployments","services"]
+#    namespaceSelector:
+#      matchLabels:
+#        admission-webhook: enabled
+#---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ include "admissionwebhook.fullname" . }}-validation-cfg
+  labels:
+    app: {{ include "admissionwebhook.name" . }}
+webhooks:
+  - name: {{ include "admissionwebhook.fullname" . }}.vodacom.co.za
+    clientConfig:
+      service:
+        name: {{ include "admissionwebhook.fullname" . }}
+        namespace: {{ .Values.namespace }}
+        path: "/validate"
+      caBundle: {{ $ca.Cert | b64enc  }}
+    rules:
+      - operations: [ "CREATE" ]
+        apiGroups: ["apps", ""]
+        apiVersions: ["v1"]
+        resources: ["deployments","services"]
+    namespaceSelector:
+      matchLabels:
+        admission-webhook: enabled
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "admissionwebhook.fullname" . }}-cert
+  labels:
+    app: {{ include "admissionwebhook.fullname" . }}
+type: Opaque
+data:
+  cert.pem: {{  $cert.Cert | b64enc}}
+  key.pem: {{  $cert.Key | b64enc }}
+
