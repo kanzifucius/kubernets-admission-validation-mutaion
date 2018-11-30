@@ -1,9 +1,5 @@
-# Kubernetes Admission Webhook example
+# Kubernetes Admission Webhook
 
-This tutoral shows how to build and deploy an [AdmissionWebhook](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#admission-webhooks).
-
-The Kubernetes [documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/) contains a common set of recommended labels that allows tools to work interoperably, describing objects in a common manner that all tools can understand. In addition to supporting tooling, the recommended labels describe applications in a way that can be queried.
-In our validating webhook example we make these labels required on deployments and services, so this webhook rejects every deployment and every service that doesn’t have these labels set. The mutating webhook in the example adds all the missing required labels with `not_available` set as the value.
 
 ## Prerequisites
 
@@ -30,9 +26,23 @@ go get -u github.com/golang/dep/cmd/dep
 2. Build and push docker image
    
 ```
-./build
+./build.sh
 ```
+
+3. Install with Helm
+
+```
+helm  install --name=myhook .
+```
+
 
 ## How does it work?
 
-We have a blog post that explains webhooks in depth with the help of this example. Check [it](https://banzaicloud.com/blog/k8s-admission-webhooks/) out!
+ - Will exectuire validation on all deployments and services on a namespace label with "admission-webhook: enabled"
+
+eg:
+```
+kubectl label namespace temptest admission-webhook=enabled
+kubectl apply -n temptest -f ./testdeployments/sleep.yaml
+Error from server: error when creating "../deployment/sleep.yaml": admission webhook "test-admissionwebhook.vodacom.co.za" denied the request: required labels  are not set za.co.vodacom/team
+```
