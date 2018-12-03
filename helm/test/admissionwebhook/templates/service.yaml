@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: RELEASE-NAME-admissionwebhook-svc
+  name: RELEASE-NAME-admissionwebhook
   labels:
     app: admissionwebhook
     chart: admissionwebhook-0.1.0

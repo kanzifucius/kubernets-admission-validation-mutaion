@@ -5,10 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/hashicorp/go-multierror"
 	"k8s.io/api/admission/v1beta1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -17,7 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/kubernetes/pkg/apis/core/v1"
-	"github.com/hashicorp/go-multierror"
 )
 
 var (
@@ -38,13 +40,8 @@ var (
 		managedByLabel,
 	}
 
-	requiredAnnotaions = []string{
-
-	}
-
-	addLabels = map[string]string{
-		managedByLabel: NA,
-	}
+	requiredAnnotaions = []string{}
+	addLabels          = map[string]string{}
 )
 
 const (
@@ -134,9 +131,22 @@ func validateLabels(availableLabels map[string]string) (err error) {
 	glog.Info("required labels", requiredLabels)
 	for _, rl := range requiredLabels {
 		if _, ok := availableLabels[rl]; !ok {
-			err =   errors.New( rl +"label missing " )
+			err = errors.New(rl + "label missing ")
 			break
 		}
+	}
+	return
+}
+
+func validateContainsResourcesDefintions(podSec corev1.PodSpec) (err error) {
+	glog.Info("available podSec:", podSec)
+
+	for _, container := range podSec.Containers {
+		ok := &container.Resources
+		if ok == nil {
+			err = errors.New("Missing  Reserouce Defintions")
+		}
+
 	}
 	return
 }
@@ -144,16 +154,14 @@ func validateLabels(availableLabels map[string]string) (err error) {
 func validateAnnotations(availbleAnnotatations map[string]string) (err error) {
 	glog.Info("available labels:", availbleAnnotatations)
 	glog.Info("required labels", requiredAnnotaions)
-	for _, rl := range requiredAnnotaions{
+	for _, rl := range requiredAnnotaions {
 		if _, ok := availbleAnnotatations[rl]; !ok {
-			err =   errors.New( rl +"annotation missing " )
+			err = errors.New(rl + "annotation missing ")
 			break
 		}
 	}
 	return
 }
-
-
 
 func updateAnnotation(target map[string]string, added map[string]string) (patch []patchOperation) {
 	for key, value := range added {
@@ -192,11 +200,27 @@ func updateLabels(target map[string]string, added map[string]string) (patch []pa
 	return patch
 }
 
-func createPatch(availableAnnotations map[string]string, annotations map[string]string, availableLabels map[string]string, labels map[string]string) ([]byte, error) {
+func updateIngress(ingress *extensions.Ingress) (patch []patchOperation) {
+
+	for index, rule := range ingress.Spec.Rules {
+		values := strings.Replace(rule.Host, "grafana.ms.vodacom.corp", "grafana.teststing.cloud.vodacom.corp", -1)
+		path := "/spec/rules/" + strconv.Itoa(index) + "/host"
+		patch = append(patch, patchOperation{
+			Op:    "replace",
+			Path:  path,
+			Value: values,
+		})
+
+	}
+
+	return patch
+}
+
+func createPatch(ingress *extensions.Ingress, availableAnnotations map[string]string, annotations map[string]string, availableLabels map[string]string, labels map[string]string) ([]byte, error) {
 	var patch []patchOperation
 
 	patch = append(patch, updateAnnotation(availableAnnotations, annotations)...)
-	patch = append(patch, updateLabels(availableLabels, labels)...)
+	patch = append(patch, updateIngress(ingress)...)
 
 	return json.Marshal(patch)
 }
@@ -206,12 +230,13 @@ func (whsvr *WebhookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.Admis
 	req := ar.Request
 	var (
 		availableLabels                 map[string]string
-		availableAnnotations                 map[string]string
+		availableAnnotations            map[string]string
 		objectMeta                      *metav1.ObjectMeta
 		resourceNamespace, resourceName string
+		availablePodSpec                corev1.PodSpec
 	)
 
-	glog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v (%v) UID=%v patchOperation=%v UserInfo=%v",
+	glog.Infof("AdmissionReview validate for Kind=%v, Namespace=%v Name=%v (%v) UID=%v patchOperation=%v UserInfo=%v",
 		req.Kind, req.Namespace, req.Name, resourceName, req.UID, req.Operation, req.UserInfo)
 
 	switch req.Kind.Kind {
@@ -227,7 +252,8 @@ func (whsvr *WebhookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.Admis
 		}
 		resourceName, resourceNamespace, objectMeta = deployment.Name, deployment.Namespace, &deployment.ObjectMeta
 		availableLabels = deployment.Labels
-		availableAnnotations =deployment.Annotations
+		availableAnnotations = deployment.Annotations
+		availablePodSpec = deployment.Spec.Template.Spec
 	case "Service":
 		var service corev1.Service
 		if err := json.Unmarshal(req.Object.Raw, &service); err != nil {
@@ -257,19 +283,20 @@ func (whsvr *WebhookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.Admis
 		validationResult = multierror.Append(validationResult, err)
 	}
 
-	if err := validateAnnotations(availableAnnotations); err != nil {
+	if err := validateContainsResourcesDefintions(availablePodSpec); err != nil {
 		validationResult = multierror.Append(validationResult, err)
 	}
 
+	if err := validateAnnotations(availableAnnotations); err != nil {
+		validationResult = multierror.Append(validationResult, err)
+	}
 
 	if validationResult != nil {
 		allowed = false
 		result = &metav1.Status{
 			Message: validationResult.Error(),
-
 		}
 	}
-
 
 	return &v1beta1.AdmissionResponse{
 		Allowed: allowed,
@@ -284,15 +311,16 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 		availableLabels, availableAnnotations map[string]string
 		objectMeta                            *metav1.ObjectMeta
 		resourceNamespace, resourceName       string
+		currentIngress                        *extensions.Ingress
 	)
 
-	glog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v (%v) UID=%v patchOperation=%v UserInfo=%v",
+	glog.Infof("AdmissionReview  mutate for Kind=%v, Namespace=%v Name=%v (%v) UID=%v patchOperation=%v UserInfo=%v",
 		req.Kind, req.Namespace, req.Name, resourceName, req.UID, req.Operation, req.UserInfo)
 
 	switch req.Kind.Kind {
-	case "Deployment":
-		var deployment appsv1.Deployment
-		if err := json.Unmarshal(req.Object.Raw, &deployment); err != nil {
+	case "Ingress":
+		var ingress extensions.Ingress
+		if err := json.Unmarshal(req.Object.Raw, &ingress); err != nil {
 			glog.Errorf("Could not unmarshal raw object: %v", err)
 			return &v1beta1.AdmissionResponse{
 				Result: &metav1.Status{
@@ -300,20 +328,10 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 				},
 			}
 		}
-		resourceName, resourceNamespace, objectMeta = deployment.Name, deployment.Namespace, &deployment.ObjectMeta
-		availableLabels = deployment.Labels
-	case "Service":
-		var service corev1.Service
-		if err := json.Unmarshal(req.Object.Raw, &service); err != nil {
-			glog.Errorf("Could not unmarshal raw object: %v", err)
-			return &v1beta1.AdmissionResponse{
-				Result: &metav1.Status{
-					Message: err.Error(),
-				},
-			}
-		}
-		resourceName, resourceNamespace, objectMeta = service.Name, service.Namespace, &service.ObjectMeta
-		availableLabels = service.Labels
+		resourceName, resourceNamespace, objectMeta = ingress.Name, ingress.Namespace, &ingress.ObjectMeta
+		availableLabels = ingress.Labels
+		availableAnnotations = ingress.Annotations
+		currentIngress = &ingress
 	}
 
 	if !mutationRequired(ignoredNamespaces, objectMeta) {
@@ -324,7 +342,7 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 	}
 
 	annotations := map[string]string{admissionWebhookAnnotationStatusKey: "mutated"}
-	patchBytes, err := createPatch(availableAnnotations, annotations, availableLabels, addLabels)
+	patchBytes, err := createPatch(currentIngress, availableAnnotations, annotations, availableLabels, addLabels)
 	if err != nil {
 		return &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{

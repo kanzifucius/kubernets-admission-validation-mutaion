@@ -25,7 +25,7 @@ spec:
       containers:
         - name: admissionwebhook
           image: "vod-docker-ms.artifactory.vodacom.co.za/admission-webhook:v1"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           args:
             - -tlsCertFile=/etc/webhook/certs/cert.pem
             - -tlsKeyFile=/etc/webhook/certs/key.pem

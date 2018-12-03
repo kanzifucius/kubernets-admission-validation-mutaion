@@ -3,29 +3,29 @@
   {{- $altName1 := printf "%s-%s.%s" .Release.Name .Chart.Name .Release.Namespace }}
   {{- $altName2 := printf "%s-%s.%s.svc" .Release.Name .Chart.Name .Release.Namespace }}
   {{- $cert := genSignedCert $cn nil (list $altName1 $altName2) 3650 $ca }}
-#apiVersion: admissionregistration.k8s.io/v1beta1
-#kind: MutatingWebhookConfiguration
-#metadata:
-#  name: {{ include "admissionwebhook.fullname" . }}-mutating-cfg
-#  labels:
-#    app: {{ include "admissionwebhook.name" . }}
-#webhooks:
-#  - name: mutating
-#    clientConfig:
-#      service:
-#        name: admission-webhook-svc
-#        namespace: {{ .Values.namespace }}
-#        path: "/mutate"
-#      caBundle: {{ b64enc $ca.Cert }}
-#    rules:
-#      - operations: [ "CREATE" ]
-#        apiGroups: ["apps", ""]
-#        apiVersions: ["v1"]
-#        resources: ["deployments","services"]
-#    namespaceSelector:
-#      matchLabels:
-#        admission-webhook: enabled
-#---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: {{ include "admissionwebhook.fullname" . }}-mutating-cfg
+  labels:
+    app: {{ include "admissionwebhook.name" . }}
+webhooks:
+  - name: {{ include "admissionwebhook.fullname" . }}.vodacom.co.za
+    clientConfig:
+      service:
+        name: {{ include "admissionwebhook.fullname" . }}
+        namespace: {{ .Values.namespace }}
+        path: "/mutate"
+      caBundle: {{ $ca.Cert | b64enc  }}
+    rules:
+      - operations: [ "CREATE","UPDATE" ]
+        apiGroups: ["apps", "extensions"]
+        apiVersions: ["v1","v1beta1"]
+        resources: ["deployments","services","ingresses"]
+    namespaceSelector:
+      matchLabels:
+        admission-webhook: enabled
+---
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: ValidatingWebhookConfiguration
 metadata:
@@ -41,7 +41,7 @@ webhooks:
         path: "/validate"
       caBundle: {{ $ca.Cert | b64enc  }}
     rules:
-      - operations: [ "CREATE" ]
+      - operations: [ "CREATE","UPDATE" ]
         apiGroups: ["apps", ""]
         apiVersions: ["v1"]
         resources: ["deployments","services"]
