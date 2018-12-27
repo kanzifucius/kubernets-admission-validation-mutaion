@@ -1,0 +1,34 @@
+apiVersion: admission.k8s.io/v1beta1
+kind: AdmissionReview
+request:
+  kind:
+    group: extensions/v1beta1
+    kind: Ingress
+    version: v1
+  namespace: test
+  object:
+    metadata:
+      name: grafana-ingress
+      namespace: test
+    spec:
+      rules:
+        - host: grafana.ms.vodacom.corp
+          http:
+            paths:
+              - backend:
+                  serviceName: grafana
+                  servicePort: 80
+                path: /
+    status: {}
+  oldObject: null
+  operation: CREATE
+  resource:
+    group: apps
+    resource: deployments
+    version: v1
+  uid: 3c3c45ff-bee9-11e8-9c41-b4d755961931
+  userInfo:
+    groups:
+      - system:masters
+      - system:authenticated
+    username: minikube-user

@@ -15,3 +15,4 @@ vendor/*
 
 testdeployments/mutatingwebhook-ca-bundle.yaml
 testdeployments/validatingwebhook-ca-bundle.yaml
+bin/*

@@ -56,6 +56,7 @@ metadata:
   name: {{ include "admissionwebhook.fullname" . }}-cert
   labels:
     app: {{ include "admissionwebhook.fullname" . }}
+  namespace: {{ .Values.namespace }}
 type: Opaque
 data:
   cert.pem: {{  $cert.Cert | b64enc}}

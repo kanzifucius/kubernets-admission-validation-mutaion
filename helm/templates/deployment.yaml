@@ -34,6 +34,8 @@ spec:
               - name: webhook-certs
                 mountPath: /etc/webhook/certs
                 readOnly: true
+              - name: config
+                mountPath: /etc/config
           ports:
             - name: http
               containerPort: 443
@@ -56,3 +58,6 @@ spec:
         - name: webhook-certs
           secret:
             secretName: {{ include "admissionwebhook.fullname" . }}-cert
+        - name: config
+          configMap:
+            name: {{ include "admissionwebhook.fullname" . }}-cm

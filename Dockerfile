@@ -1,4 +1,4 @@
 FROM alpine:latest
 
-ADD admission-webhook /admission-webhook
+ADD bin/admissionwebhook_unix  /admission-webhook
 ENTRYPOINT ["./admission-webhook"]

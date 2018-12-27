@@ -1,0 +1,15 @@
+validation:
+  ignoredNamespaces:
+  requriedAnnotaions:
+  requiredLabels:
+    - project
+    - version
+    - app
+  requeriedImageTags:
+mutation:
+  ingress:
+    oldSuffix: ".ms.vodacom.corp"
+    newSuffix:  ".cloud.vodacom.corp"
+    mutationType: "append"
+    enabled: false
+

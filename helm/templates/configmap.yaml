@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: {{ include "admissionwebhook.fullname" . }}-cm
+    labels:
+      app: {{ include "admissionwebhook.name" . }}
+      chart: {{ include "admissionwebhook.chart" . }}
+      release: {{ .Release.Name }}
+      heritage: {{ .Release.Service }}
+    namespace: {{ .Values.namespace }}
+data:
+  # When the config map is mounted as a volume, these will be created as files.
+  config.yml: |
+      validation:
+        ignoredNamespaces:
+        requriedAnnotaions:
+        requiredLabels:
+          - project
+          - version
+          - app
+        requeriedImageTags:
+      mutation:
+        ingress:
+          oldSuffix: ".ms.vodacom.corp"
+          newSuffix:  ".cloud.vodacom.corp"
+          mutationType: "append"
+          enabled: false

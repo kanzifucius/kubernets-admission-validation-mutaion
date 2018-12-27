@@ -1,0 +1,39 @@
+apiVersion: admission.k8s.io/v1beta1
+kind: AdmissionReview
+request:
+  kind:
+    group: apps
+    kind: Deployment
+    version: v1
+  namespace: test
+  object:
+    metadata:
+      name: sleep
+    spec:
+      replicas: 3
+      selector:
+        matchLabels:
+          app: sleep
+      template:
+        metadata:
+          labels:
+            app: sleep
+        spec:
+          containers:
+            - name: sleep
+              image: tutum/curl
+              command: ["/bin/sleep","infinity"]
+              imagePullPolicy: IfNotPresent
+    status: {}
+  oldObject: null
+  operation: CREATE
+  resource:
+    group: apps
+    resource: deployments
+    version: v1
+  uid: 3c3c45ff-bee9-11e8-9c41-b4d755961931
+  userInfo:
+    groups:
+      - system:masters
+      - system:authenticated
+    username: minikube-user
