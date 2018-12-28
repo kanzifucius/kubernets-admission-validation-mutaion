@@ -106,7 +106,7 @@ func (self *ValidateContainsResourcesDefintions) Execute() error {
 
 		resourcesLimits := &container.Resources.Limits
 		resourcesRequests := &container.Resources.Requests
-		if resourcesLimits == nil && resourcesRequests == nil {
+		if *resourcesLimits == nil && *resourcesRequests == nil {
 			return errors.New("Missing  resources defintions for container" + container.Name)
 		}
 

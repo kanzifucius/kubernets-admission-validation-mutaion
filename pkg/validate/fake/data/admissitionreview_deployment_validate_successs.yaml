@@ -30,6 +30,13 @@ request:
               image: tutum/curl
               command: ["/bin/sleep","infinity"]
               imagePullPolicy: IfNotPresent
+              resources:
+                limits:
+                  cpu: 2500m
+                  memory: 2Gi
+                requests:
+                  cpu: 800m
+                  memory: 1Gi
     status: {}
   oldObject: null
   operation: CREATE
