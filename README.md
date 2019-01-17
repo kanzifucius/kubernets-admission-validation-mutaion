@@ -26,7 +26,7 @@ go get -u github.com/golang/dep/cmd/dep
 2. Build and push docker image
    
 ```
-./build.sh
+make 
 ```
 
 3. Install with Helm
@@ -46,3 +46,25 @@ kubectl label namespace temptest admission-webhook=enabled
 kubectl apply -n temptest -f ./testdeployments/sleep.yaml
 Error from server: error when creating "../deployment/sleep.yaml": admission webhook "test-admissionwebhook.vodacom.co.za" denied the request: required labels  are not set za.co.vodacom/team
 ```
+## Configuration
+Configuration of the web hook is provided by a config map
+
+
+
+
+```  config.yml: |
+         validation:
+           ignoredNamespaces:
+           requriedAnnotaions:
+           requiredLabels:
+             - project
+             - version
+             - app
+           requeriedImageTags:
+         mutation:
+           ingress:
+             oldSuffix: ".ms.vodacom.corp"
+             newSuffix:  ".cloud.vodacom.corp"
+             mutationType: "append"
+             enabled: false
+             ``

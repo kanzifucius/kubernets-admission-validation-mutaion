@@ -6,9 +6,10 @@ GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 BINARY_NAME=admissionwebhook
 BINARY_UNIX=$(BINARY_NAME)_unix
+DOCKERREPO=kanzifucius/k8-admission-webhook
+VERSION=v1
 
-
-all:  clean test build docker-build
+all:  clean  build docker-build
 build:
 	dep ensure -v
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o bin/$(BINARY_UNIX) -v  ./cmd/admissionwebhook/
@@ -26,6 +27,6 @@ deps:
 	$(GOGET) github.com/markbates/pop
 
 docker-build:
-		docker build --no-cache -t vod-docker-ms.artifactory.vodacom.co.za/admission-webhook:v1 .
-		docker push vod-docker-ms.artifactory.vodacom.co.za/admission-webhook:v1
+		docker build --no-cache -t $(DOCKERREPO):$(VERSION) .
+		docker push $(DOCKERREPO):$(VERSION)
 
